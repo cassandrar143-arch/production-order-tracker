@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Production Order Tracker</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome (for icons) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+
+    <style>
+    body {
+        background-color: #f8f9fa;
+    }
+
+    .header {
+        padding: 2rem 0;
+        text-align: center;
+    }
+
+    .form-section, .table-section {
+        background-color: #fff;
+        padding: 2rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 15px rgba(0,0,0,0.05);
+        margin-bottom: 2rem;
+    }
+
+    .table {
+        background-color: #fff;
+    }
+
+    footer {
+        text-align: center;
+        padding: 1rem;
+        font-size: 0.9rem;
+        color: #666;
+    }
+
+    .subtitle {
+        color: #6c757d;
+    }
+
+    .delete-button {
+        background-color: #dc3545 !important;
+        color: white;
+        border: none;
+    }
+
+    .delete-button:hover {
+        background-color: #c82333 !important;
+    }
+
+    /* DARK MODE STYLES */
+    body.dark-mode {
+        background-color: #121212;
+        color: #e0e0e0;
+    }
+
+    .dark-mode .header,
+    .dark-mode .form-section,
+    .dark-mode .table-section {
+        background-color: #1e1e1e;
+        color: #e0e0e0;
+    }
+
+    .dark-mode .form-control,
+    .dark-mode .btn,
+    .dark-mode .dropdown-menu {
+        background-color: #333 !important;
+        color: #fff !important;
+        border-color: #555 !important;
+    }
+
+    .dark-mode .table {
+        background-color: #1e1e1e;
+        color: #e0e0e0;
+    }
+
+    .dark-mode .table thead {
+        background-color: #2c2c2c;
+        color: #f0f0f0;
+    }
+
+    .dark-mode .table tbody tr td {
+        color: #f0f0f0;
+        background-color: #1e1e1e;
+    }
+
+    .dark-mode .subtitle {
+        color: #cccccc;
+    }
+
+    /* Custom status button styles (work in light and dark mode) */
+    .status-btn {
+        color: #fff;
+        font-weight: 500;
+    }
+
+    .status-pending {
+        background-color: #6c757d; /* gray */
+    }
+
+    .status-inprogress {
+        background-color: #f0ad4e; /* amber */
+        color: #000 !important;
+    }
+
+    .status-completed {
+        background-color: #28a745; /* green */
+    }
+
+    /* Dropdown text fix for dark mode */
+    .dark-mode .dropdown-menu {
+        background-color: #2a2a2a;
+        color: #fff;
+        border-color: #444;
+    }
+
+    .dark-mode .dropdown-menu .dropdown-item {
+        color: #fff;
+    }
+
+    .dark-mode .dropdown-menu .dropdown-item:hover {
+        background-color: #3a3a3a;
+        color: #fff;
+    }
+
+</style>
+
+</head>
+
+<body>
+    <div class="container">
+
+        <!-- Page Header -->
+        <div class="header d-flex flex-column align-items-center">
+            <h1 class="display-5">
+                <i class="fa-solid fa-gear fa-spin text-primary"></i> {{ t['title'] }}
+            </h1>
+            <p class="subtitle mb-3">{{ t['subtitle'] }}</p>
+
+            <button class="btn btn-sm btn-outline-secondary" onclick="toggleDarkMode()">
+                <i class="fa-solid fa-moon"></i> {{ t['toggle_dark'] }}
+            </button>
+
+            <form action="/set-language" method="POST" class="mb-2 mt-2">
+                <select name="language" onchange="this.form.submit()" class="form-select form-select-sm" style="width: 150px;">
+                    <option value="en" {% if lang == 'en' %}selected{% endif %}>🇬🇧 English</option>
+                    <option value="de" {% if lang == 'de' %}selected{% endif %}>🇩🇪 Deutsch</option>
+                </select>
+            </form>
+        </div>
+
+
+        <!-- Toast -->
+        <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+            <div id="successToast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        {{ t['success'] }}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Order Form -->
+        <div class="form-section">
+           <h4><i class="fa-solid fa-plus-circle text-success"></i> {{ t['add_order'] }}</h4>
+            <form action="/add" method="POST" class="row g-3 mt-3">
+                <div class="col-md-6">
+                    <label for="item" class="form-label">{{ t['item_name'] }}</label>
+                    <input type="text" id="item" name="item" class="form-control" placeholder="e.g. Gear Assembly" required>
+                </div>
+                <div class="col-md-4">
+                    <label for="quantity" class="form-label">{{ t['quantity'] }}</label>
+                    <input type="number" id="quantity" name="quantity" class="form-control" min="1" required>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fa-solid fa-paper-plane"></i> {{ t['add'] }}
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Table of Orders -->
+        <div class="table-section">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4><i class="fa-solid fa-list-check text-info"></i> {{ t['order_list'] }}</h4>
+                <form method="GET" action="/" class="d-flex mb-3">
+                <label class="me-2 mt-1">{{ t['order_by'] }}:</label>
+                <select name="sort_by" class="form-select form-select-sm me-2" onchange="this.form.submit()">
+                    <option value="created_at" {% if sort_by == 'created_at' and sort_order == 'desc' %}selected{% endif %}>{{ t['date_newest'] }}</option>
+                    <option value="created_at" {% if sort_by == 'created_at' and sort_order == 'asc' %}selected{% endif %}>{{ t['date_oldest'] }}</option>
+                    <option value="quantity" {% if sort_by == 'quantity' and sort_order == 'asc' %}selected{% endif %}>{{ t['quantity_asc'] }}</option>
+                    <option value="quantity" {% if sort_by == 'quantity' and sort_order == 'desc' %}selected{% endif %}>{{ t['quantity_desc'] }}</option>
+                    <option value="status" {% if sort_by == 'status' and sort_order == 'asc' %}selected{% endif %}>{{ t['status_asc'] }}</option>
+                    <option value="status" {% if sort_by == 'status' and sort_order == 'desc' %}selected{% endif %}>{{ t['status_desc'] }}</option>
+                </select>
+                <input type="hidden" name="sort_order" value="{{ sort_order }}">
+            </form>
+                <form method="GET" action="/" class="d-flex" role="search">
+                <input class="form-control me-2" type="search" name="search" placeholder="{{ t['search'] }}" value="{{ search }}">
+                    <button class="btn btn-outline-primary" type="submit"><i class="fa-solid fa-search"></i></button>
+                </form>
+            </div>
+
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                    <th>{{ t['item_name'] }}</th>
+                    <th>{{ t['quantity'] }}</th>
+                    <th>{{ t['status'] }}</th>
+                    <th>{{ t['created'] }}</th>
+                    <th>{{ t['actions'] }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                    <tr>
+                        <td>{{ order[1] }}</td> <!-- Item Name -->
+                        <td>{{ order[2] }}</td> <!-- Quantity -->
+                        <td>
+                            <form id="status-form-{{ order[0] }}" action="/update/{{ order[0] }}" method="POST">
+                                <input type="hidden" name="status" id="status-value-{{ order[0] }}">
+                                <div class="dropdown">
+                                    <button class="btn btn-sm dropdown-toggle status-btn 
+                                        {% if order[3] == 'Pending' %}status-pending
+                                        {% elif order[3] == 'In Progress' %}status-inprogress
+                                        {% elif order[3] == 'Completed' %}status-completed
+                                        {% endif %}" 
+                                        type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        {{ t['status_labels'][order[3]] }}
+                                    </button>
+
+                                    <ul class="dropdown-menu">
+                                        <li><a class="dropdown-item" href="#" onclick="setStatusAndSubmit('{{ order[0] }}', 'Pending')">⏱ Pending</a></li>
+                                        <li><a class="dropdown-item" href="#" onclick="setStatusAndSubmit('{{ order[0] }}', 'In Progress')">🔄 In Progress</a></li>
+                                        <li><a class="dropdown-item" href="#" onclick="setStatusAndSubmit('{{ order[0] }}', 'Completed')">✅ Completed</a></li>
+                                    </ul>
+                                </div>
+                            </form>
+                        </td>
+                        <td class="text-muted small">{{ order[4] }}</td> <!-- Created -->
+                        <td>
+                            <!-- Delete Button -->
+                            <button class="btn btn-sm delete-button" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal{{ order[0] }}">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+
+                            <!-- Delete Modal -->
+                            <div class="modal fade" id="confirmDeleteModal{{ order[0] }}" tabindex="-1" aria-labelledby="deleteLabel{{ order[0] }}" aria-hidden="true">
+                                <div class="modal-dialog modal-sm modal-dialog-centered">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h6 class="modal-title" id="deleteLabel{{ order[0] }}">{{ t['delete_confirm'] }}</h6>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body text-center">
+                                            <p>{{ t['delete_confirm'] }}</p>
+                                            <form action="/delete/{{ order[0] }}" method="POST">
+                                                <button type="submit" class="btn btn-danger btn-sm">{{ t['yes_delete'] }}</button>
+                                                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">{{ t['cancel'] }}</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+           <!-- Pagination Controls -->
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+
+                    <!-- Previous button -->
+                    <li class="page-item {% if current_page == 1 %}disabled{% endif %}">
+                        <a class="page-link" href="/?page={{ current_page - 1 }}">
+                            &laquo; {{ t['previous'] }}
+                        </a>
+                    </li>
+
+                    <!-- Page numbers with ellipsis -->
+                    {% for p in visible_pages %}
+                        {% if p == '...' %}
+                            <li class="page-item disabled"><span class="page-link">…</span></li>
+                        {% else %}
+                            <li class="page-item {% if p == current_page %}active{% endif %}">
+                                <a class="page-link" href="/?page={{ p }}">{{ p }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    <!-- Next button -->
+                    <li class="page-item {% if current_page == total_pages %}disabled{% endif %}">
+                        <a class="page-link" href="/?page={{ current_page + 1 }}">
+                            {{ t['next'] }} &raquo;
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+
+        </div>
+
+        <!-- Footer -->
+        <footer>
+            Built by [Cassandra Reoperez] • Internship Project @ NTUST — 2025
+        </footer>
+
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Dark Mode & Toast -->
+    <script>
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+        }
+
+        function setStatusAndSubmit(orderId, value) {
+            const input = document.getElementById('status-value-' + orderId);
+            const form = document.getElementById('status-form-' + orderId);
+            input.value = value;
+            form.submit();
+        }
+
+        window.onload = () => {
+            // Restore dark mode
+            if (localStorage.getItem('darkMode') === 'true') {
+                document.body.classList.add('dark-mode');
+            }
+
+            // Show toast on success
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('success') === 'true') {
+                const toastElement = document.getElementById('successToast');
+                const toast = new bootstrap.Toast(toastElement);
+                toast.show();
+
+                const url = new URL(window.location);
+                url.searchParams.delete('success');
+                window.history.replaceState({}, document.title, url);
+            }
+        };
+    </script>
+</body>
+</html>
