@@ -206,13 +206,6 @@ def set_language():
     return redirect('/')
 
 
-# --- Run the app ---
-import os
-
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 10000))
-    app.run(host='0.0.0.0', port=port)
-
 # --- Dashboard ---
 @app.route('/dashboard')
 def dashboard():
@@ -236,3 +229,12 @@ def dashboard():
         completed_orders=completed_orders,
         most_frequent_item=most_frequent_item
     )
+
+# --- Run the app ---
+import os
+
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 10000))
+    app.run(host='0.0.0.0', port=port)
+
+    
