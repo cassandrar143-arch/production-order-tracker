@@ -25,13 +25,16 @@
       </div>
       <div class="p-4 bg-white rounded shadow">
         <p class="text-sm text-gray-500">Most Frequent Item</p>
-        <p class="text-xl font-semibold">{{ most_frequent_item[0] if most_frequent_item else 'N/A' }}</p>
+        <p class="text-xl font-semibold">
+          {{ most_frequent_item[0] if most_frequent_item else 'N/A' }}
+        </p>
       </div>
     </div>
 
     <canvas id="orderChart" height="120"></canvas>
   </div>
 
+  <!-- Fix: Wrap JS numbers in a <script> tag properly -->
   <script>
     const ctx = document.getElementById('orderChart').getContext('2d');
     const chart = new Chart(ctx, {
@@ -40,7 +43,7 @@
         labels: ['Pending', 'Completed'],
         datasets: [{
           label: 'Orders by Status',
-          data: [{{ pending_orders }}, {{ completed_orders }}],
+          data: [{{ pending_orders|tojson }}, {{ completed_orders|tojson }}],
           backgroundColor: ['#fbbf24', '#34d399'],
         }]
       },
