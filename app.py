@@ -10,6 +10,11 @@ from flask import Flask, render_template, request, redirect, session
 from datetime import datetime
 import sqlite3
 
+def get_db_connection():
+    conn = sqlite3.connect('orders.db')
+    conn.row_factory = sqlite3.Row
+    return conn
+
 app = Flask(__name__)
 app.secret_key = 'some-secret-key'  # Needed for session storage
 
