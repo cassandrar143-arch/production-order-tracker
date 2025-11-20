@@ -219,9 +219,9 @@ def dashboard():
     pending_orders = conn.execute("SELECT COUNT(*) FROM orders WHERE status = 'Pending'").fetchone()[0]
     completed_orders = conn.execute("SELECT COUNT(*) FROM orders WHERE status = 'Completed'").fetchone()[0]
     most_frequent_item = conn.execute('''
-        SELECT item_name, COUNT(*) as count
+        SELECT item, COUNT(*) as count
         FROM orders
-        GROUP BY item_name
+        GROUP BY item
         ORDER BY count DESC
         LIMIT 1
     ''').fetchone()
@@ -237,10 +237,6 @@ def dashboard():
 
 # --- Run the app ---
 import os
-
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 10000))
-    app.run(host='0.0.0.0', port=port)
 
 if __name__ == '__main__':
     import os
