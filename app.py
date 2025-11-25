@@ -217,6 +217,7 @@ def dashboard():
     conn = get_db_connection()
     total_orders = conn.execute('SELECT COUNT(*) FROM orders').fetchone()[0]
     pending_orders = conn.execute("SELECT COUNT(*) FROM orders WHERE status = 'Pending'").fetchone()[0]
+    in_progress_orders = conn.execute("SELECT COUNT(*) FROM orders WHERE status = 'In Progress'").fetchone()[0]
     completed_orders = conn.execute("SELECT COUNT(*) FROM orders WHERE status = 'Completed'").fetchone()[0]
     most_frequent_item = conn.execute('''
         SELECT item, COUNT(*) as count
@@ -231,6 +232,7 @@ def dashboard():
         'dashboard.html',
         total_orders=total_orders,
         pending_orders=pending_orders,
+        in_progress_orders=in_progress_orders,
         completed_orders=completed_orders,
         most_frequent_item=most_frequent_item
     )
